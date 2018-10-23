@@ -1,7 +1,7 @@
 name := """project-insights"""
 organization := "com.example"
 
-version := "1.0-SNAPSHOT"
+version := "1.2.1"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
