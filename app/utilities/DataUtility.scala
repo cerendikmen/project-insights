@@ -2,9 +2,11 @@ package utilities
 
 
 import play.api.Logger
+import smile.validation.mutualInformationScore
 
+import scala.collection.immutable.ListMap
+import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.io.Source
-
 
 /**
   * Handles CSV reading
@@ -88,5 +90,82 @@ object DataUtility {
     }
 
     (variables.getOrElse(Array[String]()), samples.getOrElse(Array.ofDim[Int](NUM_OF_ROWS, NUM_OF_COLS)))
+  }
+
+  /** Returns the variable names read from CSV */
+  def getVariableList = {
+    parseFromCsv._1
+  }
+
+  /** Calculates mutual information
+    *
+    *
+    * @param variable The given variable name from CSV
+    * @return Map( variable name -> mutual information)
+    */
+  def getMI(variable: String) = {
+    dataLogger.info(s"Getting MI for $variable")
+
+    val (variables, data) = parseFromCsv
+    val target = variables.indexOf(variable)
+
+
+    val result: HashMap[String, Double]  = HashMap()
+
+    // Get mutual information between the variable given and the other variables respectively
+    for (curr <- data.indices.filter(_ != target)) {
+      dataLogger.info(s" mutual information with : ${variables(curr)}")
+
+      val (clean1, clean2) = preProcess(data(target), data(curr))
+      val mi = calculateMI(clean1, clean2)
+      result += (variables(curr) -> mi)
+    }
+
+    ListMap(result.toSeq.sortWith(_._2 > _._2):_*)
+  }
+
+  /** Prepare two arrays for calculation
+    * by removing any pair if one of them
+    * has a value SKIP_FLAG.
+    *
+    * Empty values were marked while
+    * reading CSV file. Such values will be
+    * removed before calculations on a
+    * pair-wise basis.
+    *
+    * This might result in loosing some amount of information when calculating
+    * p(A) or p(B).
+    *
+    * @param rawData1 Row with possible invalid values
+    * @param rawData2 Row with possible invalid values
+    * @return Tuple2 of Int Arrays without invalid values
+    */
+  private def preProcess(rawData1: Array[Int], rawData2: Array[Int]) = {
+    val v1 = ArrayBuffer[Int]()
+    val v2 = ArrayBuffer[Int]()
+
+    for (i <- rawData1.indices) {
+      if (rawData1(i) != SKIP_FLAG && rawData2(i) != SKIP_FLAG) {
+        v1 += rawData1(i)
+        v2 += rawData2(i)
+      }
+    }
+    (v1.toArray, v2.toArray)
+  }
+
+  /** Calculates Mutual Information between 2 variables
+    *
+    *
+    * smile used as a library to prevent any calculation errors
+    * that might be occurred.
+    *
+    * @param v1 First array
+    * @param v2 Second array
+    * @return MI as a Double value
+    */
+  def calculateMI(v1: Array[Int], v2: Array[Int]): Double = {
+    val res = mutualInformationScore(v1, v2)
+
+    res
   }
 }
