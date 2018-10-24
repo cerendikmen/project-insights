@@ -1,0 +1,1 @@
+web: target/universal/stage/bin/project-insights -Dhttp.port=${PORT} -Dconfig.file=conf/application.conf
