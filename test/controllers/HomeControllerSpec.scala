@@ -6,6 +6,7 @@ import play.api.libs.json.Json
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
 import play.api.test._
+import play.api.Environment
 
 import scala.util.Random
 
@@ -27,7 +28,7 @@ class HomeControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting
   "HomeController GET" should {
 
     "should return mutual information csv" in {
-      val controller = new HomeController(inject[ControllerComponents])
+      val controller = new HomeController(inject[ControllerComponents], inject[Environment])
       val home = controller.mi("customer_understands_products").apply(FakeRequest(GET, "/dependencies"))
 
       status(home) mustBe OK
