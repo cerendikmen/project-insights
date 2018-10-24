@@ -75,7 +75,6 @@ object DataUtility {
   private val NUM_OF_ROWS: Int = 36 // number of samples
   private val NUM_OF_COLS: Int = 30 // number of variables
   private val SKIP_FLAG: Int = 2 // used to mark not known or missing variables
-  val CSV_FILE: String = "result.csv"
 
   // CSV content will be stored into memory after the first access and read
   private var variables: Option[Array[String]] = None
@@ -109,7 +108,7 @@ object DataUtility {
     * @param variable The given variable name from CSV
     * @return Map( variable name -> mutual information)
     */
-  def getMI(variable: String) = {
+  def getMI(variable: String, filePath: String) = {
     dataLogger.info(s"Getting MI for $variable")
 
     val (variables, data) = parseFromCsv
@@ -136,7 +135,7 @@ object DataUtility {
     })
 
     val header: List[String] = List("mutual_info", "variable")
-    CsvWriter.writeCsvFile(CSV_FILE, header, rows.toList)
+    CsvWriter.writeCsvFile(filePath, header, rows.toList)
   }
 
   /** Prepare two arrays for calculation

@@ -1,11 +1,12 @@
 package controllers
 
 import javax.inject._
+import play.api.Environment
 import play.api.libs.json.Json
 import play.api.mvc._
 import utilities.DataUtility
-import scala.concurrent._
-import ExecutionContext.Implicits.global
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 /**
@@ -13,7 +14,7 @@ import ExecutionContext.Implicits.global
  * application's home page.
  */
 @Singleton
-class HomeController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
+class HomeController @Inject()(cc: ControllerComponents, env: Environment) extends AbstractController(cc) {
 
   /**
    * Create an Action to list variable names as JSON response.
@@ -39,11 +40,13 @@ class HomeController @Inject()(cc: ControllerComponents) extends AbstractControl
     */
   def mi(variable: String) = Action {
     val availableVariables: Array[String] = DataUtility.getVariableList
+    val CSV_FILE: String = env.rootPath.getAbsolutePath + "/result.csv"
+
     availableVariables.find(x=>x == variable) match {
       case Some(_) => {
-        DataUtility.getMI(variable)
+        DataUtility.getMI(variable, CSV_FILE)
         Ok.sendFile(
-          content = new java.io.File(DataUtility.CSV_FILE),
+          content = new java.io.File(CSV_FILE),
           inline = false
         )
       }
