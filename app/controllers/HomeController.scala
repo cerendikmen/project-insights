@@ -4,6 +4,8 @@ import javax.inject._
 import play.api.libs.json.Json
 import play.api.mvc._
 import utilities.DataUtility
+import scala.concurrent._
+import ExecutionContext.Implicits.global
 
 
 /**
@@ -14,14 +16,14 @@ import utilities.DataUtility
 class HomeController @Inject()(cc: ControllerComponents) extends AbstractController(cc) {
 
   /**
-   * Create an Action to render an HTML page.
+   * Create an Action to list variable names as JSON response.
    *
    * The configuration in the `routes` file means that this method
    * will be called when the application receives a `GET` request with
    * a path of `/`.
    */
   def index() = Action { implicit request: Request[AnyContent] =>
-    lazy val res = DataUtility.parseFromCsv
+    lazy val res = DataUtility.getVariableList
     lazy val json = Json.toJson(res)
     Ok(json)
   }
@@ -39,9 +41,11 @@ class HomeController @Inject()(cc: ControllerComponents) extends AbstractControl
     val availableVariables: Array[String] = DataUtility.getVariableList
     availableVariables.find(x=>x == variable) match {
       case Some(_) => {
-        lazy val res = DataUtility.getMI(variable)
-        lazy val json = Json.toJson(res)
-        Ok(json)
+        DataUtility.getMI(variable)
+        Ok.sendFile(
+          content = new java.io.File(DataUtility.CSV_FILE),
+          inline = false
+        )
       }
       case None => {
         lazy val errMessage = Json.obj(

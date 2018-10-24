@@ -1,12 +1,17 @@
 package utilities
 
 
+import java.io.{BufferedWriter, FileWriter}
+
+import com.opencsv._
 import play.api.Logger
 import smile.validation.mutualInformationScore
 
+import scala.collection.JavaConverters._
 import scala.collection.immutable.ListMap
-import scala.collection.mutable.{ArrayBuffer, HashMap}
+import scala.collection.mutable.{ArrayBuffer, HashMap, ListBuffer}
 import scala.io.Source
+import scala.util.{Try, _}
 
 /**
   * Handles CSV reading
@@ -70,6 +75,7 @@ object DataUtility {
   private val NUM_OF_ROWS: Int = 36 // number of samples
   private val NUM_OF_COLS: Int = 30 // number of variables
   private val SKIP_FLAG: Int = 2 // used to mark not known or missing variables
+  val CSV_FILE: String = "result.csv"
 
   // CSV content will be stored into memory after the first access and read
   private var variables: Option[Array[String]] = None
@@ -110,7 +116,7 @@ object DataUtility {
     val target = variables.indexOf(variable)
 
 
-    val result: HashMap[String, Double]  = HashMap()
+    val result: HashMap[Double, String]  = HashMap()
 
     // Get mutual information between the variable given and the other variables respectively
     for (curr <- data.indices.filter(_ != target)) {
@@ -118,10 +124,19 @@ object DataUtility {
 
       val (clean1, clean2) = preProcess(data(target), data(curr))
       val mi = calculateMI(clean1, clean2)
-      result += (variables(curr) -> mi)
+      result += (mi -> variables(curr))
     }
 
-    ListMap(result.toSeq.sortWith(_._2 > _._2):_*)
+    val sortedMap = ListMap(result.toSeq.sortWith(_._1 > _._1):_*)
+    var rows = new ListBuffer[List[String]]()
+
+    sortedMap foreach (x => {
+      val row: List[String] = List(x._1.toString, x._2)
+      rows += row
+    })
+
+    val header: List[String] = List("mutual_info", "variable")
+    CsvWriter.writeCsvFile(CSV_FILE, header, rows.toList)
   }
 
   /** Prepare two arrays for calculation
@@ -168,4 +183,29 @@ object DataUtility {
 
     res
   }
+}
+
+object CsvWriter {
+  val csvLogger: Logger = Logger("CsvWriter")
+
+  def writeCsvFile(fileName: String, header: List[String], rows: List[List[String]]): Try[Unit] =
+    Try(new CSVWriter(new BufferedWriter(new FileWriter(fileName)))).flatMap((csvWriter: CSVWriter) =>
+      Try{
+        csvLogger.info(s"Writing CSV file with the given name: $fileName")
+        csvWriter.writeAll(
+          (header +: rows).map(_.toArray).asJava
+        )
+        csvWriter.close()
+      } match {
+        case f @ Failure(_) =>
+          // Always return the original failure.  In production code we might
+          // define a new exception which wraps both exceptions in the case
+          // they both fail, but that is omitted here.
+          Try(csvWriter.close()).recoverWith{
+            case _ => f
+          }
+        case success =>
+          success
+      }
+    )
 }
