@@ -185,6 +185,9 @@ object DataUtility {
   }
 }
 
+/**
+  * Handles CSV writing
+  */
 object CsvWriter {
   val csvLogger: Logger = Logger("CsvWriter")
 
